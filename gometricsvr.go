@@ -26,9 +26,9 @@ package gometricsvr
 
 import (
 	"fmt"
-        "sync"
-        "net/http"
-        "log/slog"
+	"log/slog"
+	"net/http"
+	"sync"
 )
 
 type (
@@ -56,7 +56,7 @@ func PutHeader(metricName string, description string, metricType string) {
 	var line StatT
 
 	metrics.mu.Lock()
-        defer metrics.mu.Unlock()
+	defer metrics.mu.Unlock()
 
 	line.MetricName = metricName
 	line.Description = description
@@ -74,14 +74,15 @@ func compareMap(one map[string]string, two map[string]string) bool {
 }
 
 func PutLine(metricName string, value float64, labels map[string]string) {
-	
-	metrics.mu.Lock()
-        defer metrics.mu.Unlock()
 
+	metrics.mu.Lock()
+	defer metrics.mu.Unlock()
+
+	slog.Info("gometricsvr.PutLine", "value", value, "labels", labels)
 	for index, existing := range metrics.Lines {
 		if existing.MetricName == metricName && compareMap(existing.Labels, labels) {
-			 metrics.Lines[index].Value = value
-			 return
+			metrics.Lines[index].Value = value
+			return
 		}
 	}
 
@@ -98,8 +99,9 @@ func PutLine(metricName string, value float64, labels map[string]string) {
 func dumpHeader(w http.ResponseWriter) {
 
 	metrics.mu.Lock()
-        defer metrics.mu.Unlock()
+	defer metrics.mu.Unlock()
 
+	slog.Info("gometricsvr.dumpHeader")
 	for _, stat := range metrics.Header {
 		fmt.Fprintf(w, "# HELP %s %s\n", stat.MetricName, stat.Description)
 		fmt.Fprintf(w, "# TYPE %s %s\n", stat.MetricName, stat.MetricType)
@@ -107,55 +109,57 @@ func dumpHeader(w http.ResponseWriter) {
 }
 
 func dumpLines(w http.ResponseWriter) {
+	var sb strings.Builder
 
 	metrics.mu.Lock()
-        defer metrics.mu.Unlock()
+	defer metrics.mu.Unlock()
 
 	for _, entry := range metrics.Lines {
-		fmt.Fprintf(w, "%s(", entry.MetricName)
+		sb.WriteString(fmt.Sprintf("%s(", entry.MetricName))
 		index := 0
 		for key, value := range entry.Labels {
 			if index != 0 {
-				fmt.Fprintf(w, ", ")
+				sb.WriteString(fmt.Sprintf(w, ", "))
 			}
 			index = index + 1
-			fmt.Fprintf(w, "%s=\"%s\"", key, value)
+			sb.WriteString(fmt.Sprintf(w, "%s=\"%s\"", key, value))
 		}
-		fmt.Fprintf(w, ") %f\n", entry.Value)
+		sb.WriteString(fmt.Sprintf(w, ") %f\n", entry.Value))
 	}
+	fmt.Fprintf(w, sb)
+	slog.Info("gometricsvr.dumpLines", "line", sb)
 }
 
 func logRequest(r *http.Request) {
-        slog.Info("frontend.logRequest", "Host", r.Host, "Method", r.Method, "Url", r.URL.Path, "UserAgent", r.UserAgent())
+	slog.Info("frontend.logRequest", "Host", r.Host, "Method", r.Method, "Url", r.URL.Path, "UserAgent", r.UserAgent())
 }
 
 func metricsHandler(w http.ResponseWriter, r *http.Request) {
 
-        logRequest(r)
+	logRequest(r)
 	dumpHeader(w)
 	dumpLines(w)
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
-        logRequest(r)
-        //if data.Alive(1) {
-                fmt.Fprintf(w, "OK")
-        //} else {
-                //w.WriteHeader(http.StatusNotFound)
-        //}
+	logRequest(r)
+	//if data.Alive(1) {
+	fmt.Fprintf(w, "OK")
+	//} else {
+	//w.WriteHeader(http.StatusNotFound)
+	//}
 }
 
 func server(port int) {
-        http.HandleFunc("/metrics", metricsHandler)
-        http.HandleFunc("/health", healthHandler)
+	http.HandleFunc("/metrics", metricsHandler)
+	http.HandleFunc("/health", healthHandler)
 
-        addr := fmt.Sprintf(":%d", port)
+	addr := fmt.Sprintf(":%d", port)
 
-        slog.Info("frontend.Server", "listen", addr)
-        http.ListenAndServe(addr, nil)
+	slog.Info("frontend.Server", "listen", addr)
+	http.ListenAndServe(addr, nil)
 }
 
 func StartServer(port int) {
 	go server(port)
 }
-
