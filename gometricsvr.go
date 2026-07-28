@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -119,12 +120,12 @@ func dumpLines(w http.ResponseWriter) {
 		index := 0
 		for key, value := range entry.Labels {
 			if index != 0 {
-				sb.WriteString(fmt.Sprintf(w, ", "))
+				sb.WriteString(", ")
 			}
 			index = index + 1
-			sb.WriteString(fmt.Sprintf(w, "%s=\"%s\"", key, value))
+			sb.WriteString(fmt.Sprintf("%s=\"%s\"", key, value))
 		}
-		sb.WriteString(fmt.Sprintf(w, ") %f\n", entry.Value))
+		sb.WriteString(fmt.Sprintf(") %f\n", entry.Value))
 	}
 	fmt.Fprintf(w, sb)
 	slog.Info("gometricsvr.dumpLines", "line", sb)
