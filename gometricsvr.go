@@ -26,7 +26,7 @@ package gometricsvr
 
 import (
 	"fmt"
-        "strings"
+        "sync"
         "net/http"
         "log/slog"
 )
