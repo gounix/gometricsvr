@@ -127,8 +127,8 @@ func dumpLines(w http.ResponseWriter) {
 		}
 		sb.WriteString(fmt.Sprintf(") %f\n", entry.Value))
 	}
-	fmt.Fprintf(w, sb)
-	slog.Info("gometricsvr.dumpLines", "line", sb)
+	fmt.Fprintf(w, sb.String())
+	slog.Info("gometricsvr.dumpLines", "line", sb.String())
 }
 
 func logRequest(r *http.Request) {
