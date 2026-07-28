@@ -95,33 +95,33 @@ func PutLine(metricName string, value float64, labels map[string]string) {
 	metrics.Lines = append(metrics.Lines, newLine)
 }
 
-func dumpHeader() {
+func dumpHeader(w http.ResponseWriter) {
 
 	metrics.mu.Lock()
         defer metrics.mu.Unlock()
 
 	for _, stat := range metrics.Header {
-		fmt.Printf("# HELP %s %s\n", stat.MetricName, stat.Description)
-		fmt.Printf("# TYPE %s %s\n", stat.MetricName, stat.MetricType)
+		fmt.Fprintf(w, "# HELP %s %s\n", stat.MetricName, stat.Description)
+		fmt.Fprintf(w, "# TYPE %s %s\n", stat.MetricName, stat.MetricType)
 	}
 }
 
-func dumpLines() {
+func dumpLines(w http.ResponseWriter) {
 
 	metrics.mu.Lock()
         defer metrics.mu.Unlock()
 
 	for _, entry := range metrics.Lines {
-		fmt.Printf("%s(", entry.MetricName)
+		fmt.Fprintf(w, "%s(", entry.MetricName)
 		index := 0
 		for key, value := range entry.Labels {
 			if index != 0 {
-				fmt.Printf(", ")
+				fmt.Fprintf(w, ", ")
 			}
 			index = index + 1
-			fmt.Printf("%s=\"%s\"", key, value)
+			fmt.Fprintf(w, "%s=\"%s\"", key, value)
 		}
-		fmt.Printf(") %f\n", entry.Value)
+		fmt.Fprintf(w, ") %f\n", entry.Value)
 	}
 }
 
@@ -132,8 +132,8 @@ func logRequest(r *http.Request) {
 func metricsHandler(w http.ResponseWriter, r *http.Request) {
 
         logRequest(r)
-	dumpHeader()
-	dumpLines()
+	dumpHeader(w)
+	dumpLines(w)
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
