@@ -116,16 +116,16 @@ func dumpLines(w http.ResponseWriter) {
 	defer metrics.mu.Unlock()
 
 	for _, entry := range metrics.Lines {
-		sb.WriteString(fmt.Sprintf("%s(", entry.MetricName))
+		sb.WriteString(fmt.Sprintf("%s{", entry.MetricName))
 		index := 0
 		for key, value := range entry.Labels {
 			if index != 0 {
-				sb.WriteString(", ")
+				sb.WriteString(",")
 			}
 			index = index + 1
 			sb.WriteString(fmt.Sprintf("%s=\"%s\"", key, value))
 		}
-		sb.WriteString(fmt.Sprintf(") %f\n", entry.Value))
+		sb.WriteString(fmt.Sprintf("} %f\n", entry.Value))
 	}
 	fmt.Fprintf(w, sb.String())
 	slog.Info("gometricsvr.dumpLines", "line", sb.String())
