@@ -29,6 +29,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"slices"
 	"sync"
 )
 
@@ -48,10 +49,18 @@ type (
 		mu     sync.Mutex
 		Header []StatT
 		Lines  []MetricLineT
+		Keys   map[string][]string
 	}
 )
 
 var metrics MetricsT
+
+func PutKey(metricName string, key []string) {
+	if metrics.Keys == nil {
+		metrics.Keys = make(map[string][]string)
+	}
+	metrics.Keys[metricName] = key
+}
 
 func PutHeader(metricName string, description string, metricType string) {
 	var line StatT
@@ -65,10 +74,13 @@ func PutHeader(metricName string, description string, metricType string) {
 	metrics.Header = append(metrics.Header, line)
 }
 
-func compareMap(one map[string]string, two map[string]string) bool {
+func compareMap(metricName string, one map[string]string, two map[string]string) bool {
+	primaryKeys := metrics.Keys[metricName]
 	for key, value := range one {
-		if two[key] != value {
-			return false
+		if slices.Contains(primaryKeys, key) { 
+			if two[key] != value {
+				return false
+			}
 		}
 	}
 	return true
@@ -81,7 +93,7 @@ func PutLine(metricName string, value float64, labels map[string]string) {
 
 	slog.Info("gometricsvr.PutLine", "value", value, "labels", labels)
 	for index, existing := range metrics.Lines {
-		if existing.MetricName == metricName && compareMap(existing.Labels, labels) {
+		if existing.MetricName == metricName && compareMap(metricName, existing.Labels, labels) {
 			metrics.Lines[index].Value = value
 			return
 		}
@@ -164,3 +176,4 @@ func server(port int) {
 func StartServer(port int) {
 	go server(port)
 }
+
